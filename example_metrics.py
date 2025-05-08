@@ -4,6 +4,8 @@ from torch.utils.data import DataLoader
 from torchmetrics.image import psnr,ssim,lpip
 import sys
 import os
+import numpy as np
+from PIL import Image
 
 import litegs
 import litegs.config
@@ -19,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_epochs", nargs="+", type=int, default=[])
     parser.add_argument("--checkpoint_epochs", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)
+    parser.add_argument("--output_images", action="store_true", help="Save rendered and ground truth images")
     args = parser.parse_args(sys.argv[1:])
     
     lp=litegs.arguments.ModelParams.extract(args)
@@ -63,13 +66,28 @@ if __name__ == "__main__":
     psnr_metrics=psnr.PeakSignalNoiseRatio(data_range=(0.0,1.0)).cuda()
     lpip_metrics=lpip.LearnedPerceptualImagePatchSimilarity(net_type='vgg').cuda()
 
+    # Create output directories if saving images
+    if args.output_images:
+        scene_name = os.path.basename(lp.model_path)
+        output_dir = os.path.join(lp.model_path, "evaluation")
+        os.makedirs(output_dir, exist_ok=True)
+
     #iter
     loaders={"Trainingset":train_loader,"Testset":test_loader}
     for loader_name,loader in loaders.items():
         ssim_list=[]
         psnr_list=[]
         lpips_list=[]
-        for view_matrix,proj_matrix,frustumplane,gt_image in loader:
+        
+        # Create dataset specific output directory
+        if args.output_images:
+            dataset_dir = os.path.join(output_dir, loader_name.lower())
+            gt_dir = os.path.join(dataset_dir, "gt")
+            render_dir = os.path.join(dataset_dir, "render")
+            os.makedirs(gt_dir, exist_ok=True)
+            os.makedirs(render_dir, exist_ok=True)
+        
+        for idx, (view_matrix,proj_matrix,frustumplane,gt_image) in enumerate(loader):
             view_matrix=view_matrix.cuda()
             proj_matrix=proj_matrix.cuda()
             frustumplane=frustumplane.cuda()
@@ -81,6 +99,17 @@ if __name__ == "__main__":
             ssim_list.append(ssim_metrics(img,gt_image).unsqueeze(0))
             psnr_list.append(psnr_metrics(img,gt_image).unsqueeze(0))
             lpips_list.append(lpip_metrics(img,gt_image).unsqueeze(0))
+            
+            # Save images if requested
+            if args.output_images:
+                # Convert tensors to numpy arrays and then to PIL images
+                render_img = (img[0].permute(1, 2, 0).detach().cpu().numpy() * 255).astype(np.uint8)
+                gt_img = (gt_image[0].permute(1, 2, 0).detach().cpu().numpy() * 255).astype(np.uint8)
+                
+                # Save as PNG
+                Image.fromarray(render_img).save(os.path.join(render_dir, f"{idx:05d}.png"))
+                Image.fromarray(gt_img).save(os.path.join(gt_dir, f"{idx:05d}.png"))
+                
         ssim_mean=torch.concat(ssim_list,dim=0).mean()
         psnr_mean=torch.concat(psnr_list,dim=0).mean()
         lpips_mean=torch.concat(lpips_list,dim=0).mean()
