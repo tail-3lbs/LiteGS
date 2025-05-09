@@ -229,11 +229,29 @@ class DensityControllerOfficial(DensityControllerBase):
         if epoch<self.densify_params.densify_until and epoch>=self.densify_params.densify_from:
             bUpdate=False
             if epoch%self.densify_params.densification_interval==0:
+                # Print gaussians count before split_and_clone
+                xyz_before, _, _, _, _, _ = self._get_params_from_optimizer(optimizer)
+                print(f"Before split_and_clone - Gaussians count: {xyz_before.shape}")
+                
                 self.split_and_clone(optimizer)
                 bUpdate=True
+                
+                # Print gaussians count after split_and_clone
+                xyz_after, _, _, _, _, _ = self._get_params_from_optimizer(optimizer)
+                print(f"After split_and_clone - Gaussians count: {xyz_after.shape}")
+                
             if epoch%self.densify_params.prune_interval==0:
+                # Print gaussians count before prune
+                xyz_before, _, _, _, _, _ = self._get_params_from_optimizer(optimizer)
+                print(f"Before prune - Gaussians count: {xyz_before.shape}")
+                
                 self.prune(optimizer)
                 bUpdate=True
+                
+                # Print gaussians count after prune
+                xyz_after, _, _, _, _, _ = self._get_params_from_optimizer(optimizer)
+                print(f"After prune - Gaussians count: {xyz_after.shape}")
+                
             if epoch%self.densify_params.opacity_reset_interval==0:
                 self.reset_opacity(optimizer)
                 bUpdate=True
