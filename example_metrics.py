@@ -6,6 +6,7 @@ import sys
 import os
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 
 import litegs
 import litegs.config
@@ -87,7 +88,8 @@ if __name__ == "__main__":
             os.makedirs(gt_dir, exist_ok=True)
             os.makedirs(render_dir, exist_ok=True)
         
-        for idx, (view_matrix,proj_matrix,frustumplane,gt_image) in enumerate(loader):
+        print(f"Evaluating {loader_name}...")
+        for idx, (view_matrix,proj_matrix,frustumplane,gt_image) in enumerate(tqdm(loader, desc=f"{loader_name}")):
             view_matrix=view_matrix.cuda()
             proj_matrix=proj_matrix.cuda()
             frustumplane=frustumplane.cuda()
@@ -110,6 +112,9 @@ if __name__ == "__main__":
                 Image.fromarray(render_img).save(os.path.join(render_dir, f"{idx:05d}.png"))
                 Image.fromarray(gt_img).save(os.path.join(gt_dir, f"{idx:05d}.png"))
                 
+        for psnr in psnr_list:
+            print(psnr)
+
         ssim_mean=torch.concat(ssim_list,dim=0).mean()
         psnr_mean=torch.concat(psnr_list,dim=0).mean()
         lpips_mean=torch.concat(lpips_list,dim=0).mean()
