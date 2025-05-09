@@ -227,6 +227,7 @@ class DensityControllerOfficial(DensityControllerBase):
     @torch.no_grad()
     def step(self,optimizer:torch.optim.Optimizer,epoch:int):
         if epoch<self.densify_params.densify_until and epoch>=self.densify_params.densify_from:
+            print(f"densify_until: {self.densify_params.densify_until}")
             bUpdate=False
             if epoch%self.densify_params.densification_interval==0:
                 # Print gaussians count before split_and_clone

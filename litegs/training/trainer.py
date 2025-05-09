@@ -73,6 +73,7 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
 
     #init
     total_epoch=int(op.iterations/len(trainingset))
+    print(f"total_epoch=iterations/len(trainingset): {total_epoch}={op.iterations}/{len(trainingset)}")
     if dp.densify_until<0:
         dp.densify_until=int(int(total_epoch/2)/dp.opacity_reset_interval)*dp.opacity_reset_interval
     density_controller=densify.DensityControllerOfficial(norm_radius,dp,pp.cluster_size>0)
