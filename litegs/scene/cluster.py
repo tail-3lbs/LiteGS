@@ -30,14 +30,19 @@ def uncluster(*args:list[torch.Tensor])->list[torch.Tensor]:
 def get_cluster_AABB(clustered_xyz:torch.Tensor,clustered_scale:torch.Tensor,clustered_rot:torch.Tensor)->torch.Tensor:
     '''
     '''
+    # clustered_xyz: torch.Size([3, 425, 128])
     chunk_size=clustered_xyz.shape[-1]
     chunks_num=clustered_xyz.shape[-2]
     xyz,scale,rot=uncluster(clustered_xyz,clustered_scale,clustered_rot)
-    transform_matrix=utils.wrapper.CreateTransformMatrix.call(scale,rot)   
+    transform_matrix=utils.wrapper.CreateTransformMatrix.call_script(scale,rot)
+    # print(transform_matrix.shape)  # torch.Size([3, 3, 54400])
     coefficient=2*math.log(255)
     extend_axis=transform_matrix*math.sqrt(coefficient)# == (coefficient*eigen_val).sqrt()*eigen_vec
+    # print(extend_axis.shape)  # torch.Size([3, 3, 54400])
     point_extend=extend_axis.abs().sum(dim=0)
+    # print(point_extend.shape)  # torch.Size([3, 54400])
     point_extend,=cluster_points(chunk_size,point_extend)
+    # print(point_extend.shape)  # torch.Size([3, 425, 128])
 
     max_xyz=(clustered_xyz+point_extend).max(dim=-1).values
     min_xyz=(clustered_xyz-point_extend).min(dim=-1).values
