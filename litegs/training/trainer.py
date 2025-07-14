@@ -22,6 +22,25 @@ from . import densify
 def __l1_loss(network_output:torch.Tensor, gt:torch.Tensor)->torch.Tensor:
     return torch.abs((network_output - gt)).mean()
 
+def print_opacity_quantile_stats(opacity: torch.Tensor, iteration: int):
+    """Print quantile statistics for Gaussian opacity"""
+    with torch.no_grad():
+        # Convert opacity to probabilities using sigmoid
+        opacity_probs = torch.sigmoid(opacity).flatten()
+        
+        # Calculate quantiles
+        quantiles = [0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0]
+        quantile_values = torch.quantile(opacity_probs, torch.tensor(quantiles, device=opacity.device))
+        
+        print(f"\n[Iteration {iteration}] Opacity Quantile Statistics:")
+        print(f"  Number of Gaussians: {opacity_probs.shape[0]}")
+        print(f"  Mean: {opacity_probs.mean().item():.4f}")
+        print(f"  Std:  {opacity_probs.std().item():.4f}")
+        print(f"  Quantiles:")
+        for q, val in zip(quantiles, quantile_values):
+            print(f"    {q*100:3.0f}%: {val.item():.4f}")
+        print()
+
 def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.PipelineParams,dp:arguments.DensifyParams,
           test_epochs=[],save_ply=[],save_checkpoint=[],start_checkpoint:str=None):
     
@@ -80,6 +99,9 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
     StatisticsHelperInst.reset(xyz.shape[-2],xyz.shape[-1],density_controller.is_densify_actived)
     progress_bar = tqdm(range(start_epoch, total_epoch), desc="Training progress")
     progress_bar.update(0)
+    
+    # Print initial opacity stats
+    print_opacity_quantile_stats(opacity, 0)
 
     for epoch in range(start_epoch,total_epoch):
 
@@ -122,6 +144,8 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                     opt.step()
                 opt.zero_grad(set_to_none = True)
                 schedular.step()
+
+        print_opacity_quantile_stats(opacity, epoch)
 
         if epoch in test_epochs:
             with torch.no_grad():
