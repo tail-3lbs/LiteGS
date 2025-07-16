@@ -7,6 +7,7 @@ import os
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+import torchvision.utils as vutils
 
 import litegs
 import litegs.config
@@ -89,7 +90,7 @@ if __name__ == "__main__":
             os.makedirs(render_dir, exist_ok=True)
         
         print(f"Evaluating {loader_name}...")
-        for idx, (view_matrix,proj_matrix,frustumplane,gt_image) in enumerate(tqdm(loader, desc=f"{loader_name}")):
+        for idx, (view_matrix,proj_matrix,frustumplane,gt_image,frame_name) in enumerate(tqdm(loader, desc=f"{loader_name}")):
             view_matrix=view_matrix.cuda()
             proj_matrix=proj_matrix.cuda()
             frustumplane=frustumplane.cuda()
@@ -104,16 +105,18 @@ if __name__ == "__main__":
             
             # Save images if requested
             if args.output_images:
-                # Convert tensors to numpy arrays and then to PIL images
-                render_img = (img[0].permute(1, 2, 0).detach().cpu().numpy() * 255).astype(np.uint8)
-                gt_img = (gt_image[0].permute(1, 2, 0).detach().cpu().numpy() * 255).astype(np.uint8)
+                # Use original frame name without extension for file naming
+                # Extract string from batch (frame_name is a tuple/list with one element)
+                frame_name_str = frame_name[0] if isinstance(frame_name, (tuple, list)) else frame_name
+                base_name = os.path.splitext(frame_name_str)[0]
                 
-                # Save as PNG
-                Image.fromarray(render_img).save(os.path.join(render_dir, f"{idx:05d}.png"))
-                Image.fromarray(gt_img).save(os.path.join(gt_dir, f"{idx:05d}.png"))
+                # Save rendered image using torchvision (same as trainer.py)
+                render_path = os.path.join(render_dir, f"{base_name}.png")
+                vutils.save_image(img.squeeze(0), render_path, normalize=False)
                 
-        for psnr in psnr_list:
-            print(psnr)
+                # Save ground truth image using torchvision (same as trainer.py)
+                gt_path = os.path.join(gt_dir, f"{base_name}.png")
+                vutils.save_image(gt_image.squeeze(0), gt_path, normalize=False)
 
         ssim_mean=torch.concat(ssim_list,dim=0).mean()
         psnr_mean=torch.concat(psnr_list,dim=0).mean()

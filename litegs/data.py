@@ -172,12 +172,13 @@ class CameraFrameDataset(Dataset):
     def __len__(self):
         return len(self.frames)
     
-    def __getitem__(self,idx:int)->tuple[torch.Tensor,torch.Tensor,torch.Tensor]:
+    def __getitem__(self,idx:int)->tuple[torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor,str]:
         image=self.frames[idx].load_image(self.downsample)
         view_matrix=self.frames[idx].get_viewmatrix()
         proj_matrix=self.cameras[self.frames[idx].camera_id].get_inv_z_project_matrix()
         frustumplane=self.frustumplanes[idx]
-        return torch.Tensor(view_matrix),torch.Tensor(proj_matrix),torch.Tensor(frustumplane),torch.Tensor(image)
+        frame_name=self.frames[idx].name
+        return torch.Tensor(view_matrix),torch.Tensor(proj_matrix),torch.Tensor(frustumplane),torch.Tensor(image),frame_name
     
     def get_norm(self)->tuple[float,float]:
         def get_center_and_diag(cam_centers):

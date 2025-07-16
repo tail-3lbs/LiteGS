@@ -70,7 +70,7 @@ def save_training_images(model_path: str, epoch: int, train_loader: DataLoader,
     saved_count = 0
     
     with torch.no_grad():
-        for batch_idx, (view_matrix, proj_matrix, frustumplane, gt_image) in enumerate(train_loader):
+        for batch_idx, (view_matrix, proj_matrix, frustumplane, gt_image, frame_name) in enumerate(train_loader):
             if saved_count >= max_images:
                 break
                 
@@ -87,12 +87,17 @@ def save_training_images(model_path: str, epoch: int, train_loader: DataLoader,
                 view_matrix, proj_matrix, culled_xyz, culled_scale, culled_rot, culled_sh_0, culled_sh_rest, culled_opacity,
                 actived_sh_degree, gt_image.shape[2:], pp)
             
+            # Use original frame name without extension for file naming
+            # Extract string from batch (frame_name is a tuple/list with one element)
+            frame_name_str = frame_name[0] if isinstance(frame_name, (tuple, list)) else frame_name
+            base_name = os.path.splitext(frame_name_str)[0]
+            
             # Save rendered image
-            rendered_path = os.path.join(epoch_dir, f"{batch_idx:03d}_rendered.png")
+            rendered_path = os.path.join(epoch_dir, f"{base_name}_rendered.png")
             vutils.save_image(img.squeeze(0), rendered_path, normalize=False)
             
             # Save ground truth image
-            gt_path = os.path.join(epoch_dir, f"{batch_idx:03d}_gt.png")
+            gt_path = os.path.join(epoch_dir, f"{base_name}_gt.png")
             vutils.save_image(gt_image.squeeze(0), gt_path, normalize=False)
             
             saved_count += 1
@@ -172,7 +177,7 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                 actived_sh_degree=min(int(epoch/5),lp.sh_degree)
 
         with StatisticsHelperInst.try_start(epoch):
-            for view_matrix,proj_matrix,frustumplane,gt_image in train_loader:
+            for view_matrix,proj_matrix,frustumplane,gt_image,frame_name in train_loader:
                 view_matrix=view_matrix.cuda()
                 proj_matrix=proj_matrix.cuda()
                 frustumplane=frustumplane.cuda()
@@ -219,7 +224,7 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                     loaders["Testset"]=test_loader
                 for name,loader in loaders.items():
                     psnr_list=[]
-                    for view_matrix,proj_matrix,frustumplane,gt_image in loader:
+                    for view_matrix,proj_matrix,frustumplane,gt_image,frame_name in loader:
                         view_matrix=view_matrix.cuda()
                         proj_matrix=proj_matrix.cuda()
                         frustumplane=frustumplane.cuda()
