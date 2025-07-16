@@ -6,6 +6,7 @@ from tqdm import tqdm
 import numpy as np
 import os
 import torch.cuda.nvtx as nvtx
+import torchvision.utils as vutils
 
 from .. import arguments
 from .. import data
@@ -56,6 +57,47 @@ def print_cuda_timing_stats(iteration: int):
     print(f"  Forward kernel time:  {forward_time_us:.1f} μs")
     print(f"  Backward kernel time: {backward_time_us:.1f} μs")
     print()
+
+def save_training_images(model_path: str, epoch: int, train_loader: DataLoader, 
+                        cluster_origin, cluster_extend, xyz, scale, rot, sh_0, sh_rest, opacity,
+                        op, pp, actived_sh_degree, max_images: int = 5):
+    """Save the first max_images rendered images and ground truth images"""
+    
+    # Create directory structure
+    epoch_dir = os.path.join(model_path, "training_images", f"epoch_{epoch:06d}")
+    os.makedirs(epoch_dir, exist_ok=True)
+    
+    saved_count = 0
+    
+    with torch.no_grad():
+        for batch_idx, (view_matrix, proj_matrix, frustumplane, gt_image) in enumerate(train_loader):
+            if saved_count >= max_images:
+                break
+                
+            view_matrix = view_matrix.cuda()
+            proj_matrix = proj_matrix.cuda()
+            frustumplane = frustumplane.cuda()
+            gt_image = gt_image.cuda() / 255.0
+            
+            # Render the image
+            _, culled_xyz, culled_scale, culled_rot, culled_sh_0, culled_sh_rest, culled_opacity = render.render_preprocess(
+                cluster_origin, cluster_extend, frustumplane, xyz, scale, rot, sh_0, sh_rest, opacity, op, pp)
+            
+            img, transmitance, depth, normal = render.render(
+                view_matrix, proj_matrix, culled_xyz, culled_scale, culled_rot, culled_sh_0, culled_sh_rest, culled_opacity,
+                actived_sh_degree, gt_image.shape[2:], pp)
+            
+            # Save rendered image
+            rendered_path = os.path.join(epoch_dir, f"{batch_idx:03d}_rendered.png")
+            vutils.save_image(img.squeeze(0), rendered_path, normalize=False)
+            
+            # Save ground truth image
+            gt_path = os.path.join(epoch_dir, f"{batch_idx:03d}_gt.png")
+            vutils.save_image(gt_image.squeeze(0), gt_path, normalize=False)
+            
+            saved_count += 1
+    
+    print(f"Saved {saved_count} training images to {epoch_dir}")
 
 def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.PipelineParams,dp:arguments.DensifyParams,
           test_epochs=[],save_ply=[],save_checkpoint=[],start_checkpoint:str=None):
@@ -163,6 +205,11 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
 
         print_opacity_quantile_stats(opacity, epoch)
         print_cuda_timing_stats(epoch)
+        
+        # Save training images after each epoch
+        save_training_images(lp.model_path, epoch, train_loader, 
+                           cluster_origin, cluster_extend, xyz, scale, rot, sh_0, sh_rest, opacity,
+                           op, pp, actived_sh_degree, max_images=5)
 
         if epoch in test_epochs:
             with torch.no_grad():
