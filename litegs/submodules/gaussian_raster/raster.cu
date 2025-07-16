@@ -14,6 +14,10 @@ namespace cg = cooperative_groups;
 #include "cuda_errchk.h"
 #include "raster.h"
 
+// Global timing variables
+float g_forward_time = 0.0f;
+float g_backward_time = 0.0f;
+
 
 template <int tilesize,bool enable_trans,bool enable_depth>
 __global__ void raster_forward_kernel(
@@ -180,6 +184,14 @@ std::vector<at::Tensor> rasterize_forward(
 )
 {
     at::DeviceGuard guard( ndc.device());
+    
+    // Create CUDA events for timing
+    cudaEvent_t start_event, stop_event;
+    cudaEventCreate(&start_event);
+    cudaEventCreate(&stop_event);
+    
+    // Record start time
+    cudaEventRecord(start_event);
 
     int64_t viewsnum = start_index.sizes()[0];
     int tilesnum_x = std::ceil(img_w / float(tilesize));
@@ -242,6 +254,18 @@ std::vector<at::Tensor> rasterize_forward(
 
     }
     CUDA_CHECK_ERRORS;
+    
+    // Record end time and calculate elapsed time
+    cudaEventRecord(stop_event);
+    cudaEventSynchronize(stop_event);
+    
+    float elapsed_time;
+    cudaEventElapsedTime(&elapsed_time, start_event, stop_event);
+    g_forward_time = elapsed_time;
+    
+    // Clean up events
+    cudaEventDestroy(start_event);
+    cudaEventDestroy(stop_event);
     
     return { output_img ,output_transmitance,output_depth ,output_last_contributor };
 }
@@ -788,6 +812,14 @@ std::vector<at::Tensor> rasterize_backward(
 )
 {
     at::DeviceGuard guard(ndc.device());
+    
+    // Create CUDA events for timing
+    cudaEvent_t start_event, stop_event;
+    cudaEventCreate(&start_event);
+    cudaEventCreate(&stop_event);
+    
+    // Record start time
+    cudaEventRecord(start_event);
 
     int64_t viewsnum = start_index.sizes()[0];
     int tilesnum_x = std::ceil(img_w / float(tilesize));
@@ -864,6 +896,27 @@ std::vector<at::Tensor> rasterize_backward(
     }
     CUDA_CHECK_ERRORS;
     
+    // Record end time and calculate elapsed time
+    cudaEventRecord(stop_event);
+    cudaEventSynchronize(stop_event);
+    
+    float elapsed_time;
+    cudaEventElapsedTime(&elapsed_time, start_event, stop_event);
+    g_backward_time = elapsed_time;
+    
+    // Clean up events
+    cudaEventDestroy(start_event);
+    cudaEventDestroy(stop_event);
+    
     return { d_ndc ,d_cov2d_inv ,d_color,d_opacity };
+}
+
+// Functions to access timing data
+float get_forward_time() {
+    return g_forward_time;
+}
+
+float get_backward_time() {
+    return g_backward_time;
 }
 

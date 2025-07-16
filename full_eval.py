@@ -12,8 +12,8 @@
 import os
 from argparse import ArgumentParser
 
-mipnerf360_outdoor_scenes = ["bicycle", "flowers", "garden", "stump", "treehill"]
-mipnerf360_indoor_scenes = ["room", "counter", "kitchen", "bonsai"]
+mipnerf360_outdoor_scenes = ["garden"]  # ["bicycle", "flowers", "garden", "stump", "treehill"]
+mipnerf360_indoor_scenes = []  # ["room", "counter", "kitchen", "bonsai"]
 
 parser = ArgumentParser(description="Full evaluation script parameters")
 parser.add_argument("--skip_training", action="store_true")

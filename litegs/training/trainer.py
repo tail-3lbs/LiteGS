@@ -19,6 +19,8 @@ from ..utils import wrapper
 from ..utils.statistic_helper import StatisticsHelperInst
 from . import densify
 
+import litegs_fused
+
 def __l1_loss(network_output:torch.Tensor, gt:torch.Tensor)->torch.Tensor:
     return torch.abs((network_output - gt)).mean()
 
@@ -40,6 +42,20 @@ def print_opacity_quantile_stats(opacity: torch.Tensor, iteration: int):
         for q, val in zip(quantiles, quantile_values):
             print(f"    {q*100:3.0f}%: {val.item():.4f}")
         print()
+
+def print_cuda_timing_stats(iteration: int):
+    """Print CUDA kernel timing statistics"""
+    forward_time = litegs_fused.get_forward_time()
+    backward_time = litegs_fused.get_backward_time()
+    
+    # Convert from milliseconds to microseconds
+    forward_time_us = forward_time * 1000
+    backward_time_us = backward_time * 1000
+    
+    print(f"\n[Iteration {iteration}] CUDA Kernel Timing Statistics:")
+    print(f"  Forward kernel time:  {forward_time_us:.1f} μs")
+    print(f"  Backward kernel time: {backward_time_us:.1f} μs")
+    print()
 
 def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.PipelineParams,dp:arguments.DensifyParams,
           test_epochs=[],save_ply=[],save_checkpoint=[],start_checkpoint:str=None):
@@ -146,6 +162,7 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                 schedular.step()
 
         print_opacity_quantile_stats(opacity, epoch)
+        print_cuda_timing_stats(epoch)
 
         if epoch in test_epochs:
             with torch.no_grad():

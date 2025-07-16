@@ -32,3 +32,7 @@ std::vector<at::Tensor> rasterize_backward(
     int64_t img_h,
     int64_t img_w
 );
+
+// Functions to access timing data
+float get_forward_time();
+float get_backward_time();
