@@ -12,8 +12,8 @@
 import os
 from argparse import ArgumentParser
 
-mipnerf360_outdoor_scenes = ["garden"]  # ["bicycle", "flowers", "garden", "stump", "treehill"]
-mipnerf360_indoor_scenes = []  # ["room", "counter", "kitchen", "bonsai"]
+mipnerf360_outdoor_scenes = []  # ["bicycle", "flowers", "garden", "stump", "treehill"]
+mipnerf360_indoor_scenes = ["bonsai"]  # ["room", "counter", "kitchen", "bonsai"]
 
 parser = ArgumentParser(description="Full evaluation script parameters")
 parser.add_argument("--skip_training", action="store_true")
@@ -31,7 +31,7 @@ if not args.skip_training:
     for scene in all_scenes:
         scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
         scene_output_path=os.path.join(args.output_path,scene)
-        res = os.system("time python example_train.py -s " + scene_input_path + " -i images_8 -m " + scene_output_path + " --eval --sh_degree 3")
+        res = os.system("time python example_train.py -s " + scene_input_path + " -i images_2 -m " + scene_output_path + " --eval --sh_degree 3")
         if res != 0:
             print(f"Training failed for scene {scene}")
             exit(1)

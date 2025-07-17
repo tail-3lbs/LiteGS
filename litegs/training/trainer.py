@@ -208,13 +208,13 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                 opt.zero_grad(set_to_none = True)
                 schedular.step()
 
-        print_opacity_quantile_stats(opacity, epoch)
-        print_cuda_timing_stats(epoch)
+        # print_opacity_quantile_stats(opacity, epoch)
+        # print_cuda_timing_stats(epoch)
         
         # Save training images after each epoch
-        save_training_images(lp.model_path, epoch, train_loader, 
-                           cluster_origin, cluster_extend, xyz, scale, rot, sh_0, sh_rest, opacity,
-                           op, pp, actived_sh_degree, max_images=5)
+        # save_training_images(lp.model_path, epoch, train_loader, 
+        #                    cluster_origin, cluster_extend, xyz, scale, rot, sh_0, sh_rest, opacity,
+        #                    op, pp, actived_sh_degree, max_images=5)
 
         if epoch in test_epochs:
             with torch.no_grad():
