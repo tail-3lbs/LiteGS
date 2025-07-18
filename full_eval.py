@@ -40,7 +40,7 @@ output_images_flag = " --output_images" if args.save_images else ""
 for scene in all_scenes:
     scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
     scene_output_path=os.path.join(args.output_path,scene)
-    res = os.system("time python example_metrics.py -s " + scene_input_path + " -i images_8 -m " + scene_output_path + " --sh_degree 3" + output_images_flag)
+    res = os.system("time python example_metrics.py -s " + scene_input_path + " -i images_2 -m " + scene_output_path + " --sh_degree 3" + output_images_flag)
     if res != 0:
         print(f"Evaluation failed for scene {scene}")
         exit(1)
