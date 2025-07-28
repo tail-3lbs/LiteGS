@@ -105,7 +105,7 @@ def save_training_images(model_path: str, epoch: int, train_loader: DataLoader,
     print(f"Saved {saved_count} training images to {epoch_dir}")
 
 def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.PipelineParams,dp:arguments.DensifyParams,
-          test_epochs=[],save_ply=[],save_checkpoint=[],start_checkpoint:str=None):
+          test_epochs=[],save_ply=[],save_checkpoint=[],start_checkpoint=None):
     
     cameras_info:dict[int,data.CameraInfo]=None
     camera_frames:list[data.CameraFrame]=None
