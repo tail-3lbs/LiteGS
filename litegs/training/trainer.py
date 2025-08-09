@@ -44,19 +44,6 @@ def print_opacity_quantile_stats(opacity: torch.Tensor, iteration: int):
             print(f"    {q*100:3.0f}%: {val.item():.4f}")
         print()
 
-def print_cuda_timing_stats(iteration: int):
-    """Print CUDA kernel timing statistics"""
-    forward_time = litegs_fused.get_forward_time()
-    backward_time = litegs_fused.get_backward_time()
-    
-    # Convert from milliseconds to microseconds
-    forward_time_us = forward_time * 1000
-    backward_time_us = backward_time * 1000
-    
-    print(f"\n[Iteration {iteration}] CUDA Kernel Timing Statistics:")
-    print(f"  Forward kernel time:  {forward_time_us:.1f} μs")
-    print(f"  Backward kernel time: {backward_time_us:.1f} μs")
-    print()
 
 def save_training_images(model_path: str, epoch: int, train_loader: DataLoader, 
                         cluster_origin, cluster_extend, xyz, scale, rot, sh_0, sh_rest, opacity,
@@ -209,7 +196,6 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                 schedular.step()
 
         # print_opacity_quantile_stats(opacity, epoch)
-        # print_cuda_timing_stats(epoch)
         
         # Save training images after each epoch
         # save_training_images(lp.model_path, epoch, train_loader, 

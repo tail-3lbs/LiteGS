@@ -25,6 +25,4 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("compact_visible_params_forward", &compact_visible_params_forward);
   m.def("compact_visible_params_backward", &compact_visible_params_backward);
   m.def("adamUpdate", &adamUpdate);
-  m.def("get_forward_time", &get_forward_time);
-  m.def("get_backward_time", &get_backward_time);
 }
