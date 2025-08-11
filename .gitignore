@@ -1,6 +1,5 @@
 *.pyc
-output
-ablation_output
+output*
 build
 *.egg-info
 dist
@@ -11,5 +10,4 @@ trace_*.json
 *.zip
 debug_gradient*
 profiler_input_data
-nan_data
 dataset/*
