@@ -1,5 +1,6 @@
 *.pyc
-output*
+output
+output_archived
 build
 *.egg-info
 dist
