@@ -214,6 +214,10 @@ class CreateTransformMatrix(BaseWrapper):
         rotation_matrix[2,1]=2 * (y * z - r * x)
         rotation_matrix[2,2]=1 - 2 * (x * x + y * y)
 
+        # Jiaqi: Based on this implementation above, it's the row not the column that is the principal axis.
+        # print(rotation_matrix.shape)  # torch.Size([3, 3, 54400])
+        # print(scaling_vec.unsqueeze(1).shape)  # torch.Size([3, 1, 54400])
+        # This can also be seen here, we are scaling the row vector of the rotation matrix.
         transform_matrix=rotation_matrix*scaling_vec.unsqueeze(1)
         return transform_matrix
 

@@ -8,6 +8,12 @@ import math
 import os
 import torch.cuda.nvtx as nvtx
 
+try:
+    from torch.utils.tensorboard import SummaryWriter
+    TENSORBOARD_FOUND = True
+except ImportError:
+    TENSORBOARD_FOUND = False
+
 from .. import arguments
 from .. import data
 from .. import io_manager
@@ -18,11 +24,43 @@ from .. import render
 from ..utils.statistic_helper import StatisticsHelperInst
 from . import densify
 
+
+def pretty_scientific(
+        nums: list[float],
+    precision: int = 4,
+    sep: str = " "
+) -> str:
+    """
+    Return a single-line string of numbers in scientific notation.
+
+    Args:
+        nums:       List of float numbers to format.
+        precision:  Number of digits after the decimal in the exponent format.
+        sep:        Separator between formatted numbers.
+
+    Returns:
+        A string like "1.2345e+00 2.3456e-01 3.4567e+02"
+    """
+    # Build a dynamic format string, e.g. "{:.4e}"
+    fmt = f"{{:.{precision}e}}"
+    # Apply to each number and join without newlines
+    return "(" + sep.join(fmt.format(x) for x in nums) + ")"
+
+
 def __l1_loss(network_output:torch.Tensor, gt:torch.Tensor)->torch.Tensor:
     return torch.abs((network_output - gt)).mean()
 
 def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.PipelineParams,dp:arguments.DensifyParams,
           test_epochs=[],save_ply=[],save_checkpoint=[],start_checkpoint=None):
+
+    # Setup TensorBoard writer
+    tb_writer = None
+    if TENSORBOARD_FOUND:
+        tb_writer = SummaryWriter(os.path.join(lp.model_path, "tensorboard"))
+        print("TensorBoard logging enabled at:", os.path.join(lp.model_path, "tensorboard"))
+    else:
+        print("TensorBoard not available: not logging progress")
+
     
     cameras_info:dict[int,data.CameraInfo]=None
     camera_frames:list[data.CameraFrame]=None
@@ -73,6 +111,7 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
 
     #init
     total_epoch=int(op.iterations/len(trainingset))
+    print(f"total_epoch=iterations/len(trainingset): {total_epoch}={op.iterations}/{len(trainingset)}")
     if dp.densify_until<0:
         dp.densify_until=int(total_epoch*0.8/dp.opacity_reset_interval)*dp.opacity_reset_interval+1
     density_controller=densify.DensityControllerTamingGS(norm_radius,dp,pp.cluster_size>0,init_points_num)
@@ -81,9 +120,13 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
     progress_bar.update(0)
 
     for epoch in range(start_epoch,total_epoch):
+        print("="*90)
+        # Epoch starts from 0 and iteration starts from 0 too.
+        total_gaussians = xyz.shape[1] * xyz.shape[2]
+        print(f"[EPOCH {epoch}] [ITER {schedular.last_epoch}] Training started with gaussian number: {total_gaussians}")
 
         with torch.no_grad():
-            if pp.cluster_size>0 and (epoch-1)%dp.densification_interval==0:
+            if pp.cluster_size>0 and epoch%dp.densification_interval==0:
                 scene.spatial_refine(pp.cluster_size>0,opt,xyz)
                 cluster_origin,cluster_extend=scene.cluster.get_cluster_AABB(xyz,scale.exp(),torch.nn.functional.normalize(rot,dim=0))
             if actived_sh_degree<lp.sh_degree:
@@ -95,6 +138,11 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                 proj_matrix=proj_matrix.cuda()
                 frustumplane=frustumplane.cuda()
                 gt_image=gt_image.cuda()/255.0
+
+                # Calculate tile dimensions once after gt_image is finalized
+                tiles_x=int(math.ceil(gt_image.shape[3]/float(pp.tile_size[1])))
+                tiles_y=int(math.ceil(gt_image.shape[2]/float(pp.tile_size[0])))
+                total_tiles = tiles_x * tiles_y
 
                 #cluster culling
                 visible_chunkid,culled_xyz,culled_scale,culled_rot,culled_sh_0,culled_sh_rest,culled_opacity=render.render_preprocess(cluster_origin,cluster_extend,frustumplane,
@@ -118,10 +166,23 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                     opt.step(visible_chunkid,primitive_visible)
                 else:
                     opt.step()
+
+                if tb_writer:
+                    tb_writer.add_scalar('counts/1-render_scale', render_scale, schedular.last_epoch)
+                    tb_writer.add_scalar('counts/2-gt_image_height', gt_image.shape[2], schedular.last_epoch)
+                    tb_writer.add_scalar('counts/3-total_tiles', total_tiles, schedular.last_epoch)
+                    tb_writer.add_scalar('counts/4-total_gaussians', total_gaussians, schedular.last_epoch)
+
                 opt.zero_grad(set_to_none = True)
+
+                # Before step(), the last_epoch is 0. After step(), the last_epoch is 1.
                 schedular.step()
 
+            # If last_epoch is 10, that means we have run through 10 iterations: 0-9.
+            print(f"[EPOCH {epoch}] Training done. Total iterations used till now: {schedular.last_epoch}")
+
         if epoch in test_epochs:
+            print("\n\n")
             with torch.no_grad():
                 _cluster_origin=None
                 _cluster_extend=None
@@ -143,9 +204,12 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                         img,transmitance,depth,normal,_=render.render(view_matrix,proj_matrix,culled_xyz,culled_scale,culled_rot,culled_sh_0,culled_sh_rest,culled_opacity,
                                                                     actived_sh_degree,gt_image.shape[2:],pp)
                         psnr_list.append(psnr_metrics(img,gt_image).unsqueeze(0))
-                    tqdm.write("\n[EPOCH {}] {} Evaluating: PSNR {}".format(epoch,name,torch.concat(psnr_list,dim=0).mean()))
+                    psnr_mean = torch.concat(psnr_list,dim=0).mean()
+                    print("[EPOCH {}] {} Evaluating: PSNR {}".format(epoch,name,psnr_mean))
+            print("\n\n")
 
         xyz,scale,rot,sh_0,sh_rest,opacity=density_controller.step(opt,epoch)
+
         progress_bar.update()  
 
         if epoch in save_ply or epoch==total_epoch-1:
@@ -169,6 +233,9 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
         if epoch in save_checkpoint:
             io_manager.save_checkpoint(lp.model_path,epoch,opt,schedular)
 
+        print(f"[EPOCH {epoch}] Epoch ended. Total iterations used till now: {schedular.last_epoch}")
+        print("="*90)
+
     # Save final Gaussian count to file
     final_gaussian_count = xyz.shape[1] * xyz.shape[2]
     gaussian_count_file = os.path.join(lp.model_path, "gaussian_count.txt")
@@ -177,5 +244,10 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
         f.write(f"Total epochs: {total_epoch}\n")
         f.write(f"Final iteration: {schedular.last_epoch}\n")
     print(f"Saved Gaussian count ({final_gaussian_count}) to {gaussian_count_file}")
+
+    # Close TensorBoard writer
+    if tb_writer:
+        tb_writer.close()
+        print("TensorBoard writer closed")
 
     return
