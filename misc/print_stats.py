@@ -78,43 +78,47 @@ def print_table(base_path, scenes, data, label=""):
         print(f"Data from: {base_path}")
     print()
     
+    # Calculate individual column widths for each scene + buffer
+    scene_col_widths = {scene: max(12, len(scene) + 2) for scene in scenes}
+    
     # Print table header
-    print(f"{'Metric':<20}", end='')
+    print(f"{'Metric':<20}|", end='')
     for scene in scenes:
-        print(f"{scene:>12}", end='')
+        print(f"{scene:>{scene_col_widths[scene]}}|", end='')
     print()
     
     # Print separator
-    print('-' * (20 + 12 * len(scenes)))
+    total_width = 21 + sum(scene_col_widths[scene] + 1 for scene in scenes)
+    print('-' * total_width)
     
     # Print Gaussian count row
-    print(f"{'Gaussian Number':<20}", end='')
+    print(f"{'Gaussian Number':<20}|", end='')
     for scene in scenes:
         count = data[scene]['gaussian_count']
         if count is not None:
-            print(f"{count:>12,}", end='')
+            print(f"{count:>{scene_col_widths[scene]},}|", end='')
         else:
-            print(f"{'N/A':>12}", end='')
+            print(f"{'N/A':>{scene_col_widths[scene]}}|", end='')
     print()
     
     # Print Testing PSNR row
-    print(f"{'Testing PSNR':<20}", end='')
+    print(f"{'Testing PSNR':<20}|", end='')
     for scene in scenes:
         psnr = data[scene]['psnr']
         if psnr is not None:
-            print(f"{psnr:>12.4f}", end='')
+            print(f"{psnr:>{scene_col_widths[scene]}.4f}|", end='')
         else:
-            print(f"{'N/A':>12}", end='')
+            print(f"{'N/A':>{scene_col_widths[scene]}}|", end='')
     print()
     
     # Print Training time row
-    print(f"{'Training Time (s)':<20}", end='')
+    print(f"{'Training Time (s)':<20}|", end='')
     for scene in scenes:
         time_sec = data[scene]['training_time']
         if time_sec is not None:
-            print(f"{time_sec:>12.2f}", end='')
+            print(f"{time_sec:>{scene_col_widths[scene]}.2f}|", end='')
         else:
-            print(f"{'N/A':>12}", end='')
+            print(f"{'N/A':>{scene_col_widths[scene]}}|", end='')
     print()
 
 def compare_training_times(scenes_a, data_a, scenes_b, data_b):
@@ -131,10 +135,13 @@ def compare_training_times(scenes_a, data_a, scenes_b, data_b):
         print("No common scenes found for comparison")
         return
     
+    # Calculate column width for scene names (minimum 12) + buffer
+    scene_col_width = max(12, max(len(scene) + 2 for scene in common_scenes))
+    
     ratios = []
     
-    print(f"{'Scene':<12} {'Time A (s)':<12} {'Time B (s)':<12} {'Ratio (A/B)':<12}")
-    print('-' * 50)
+    print(f"{'Scene':<{scene_col_width}}|{'Time A (s)':<12}|{'Time B (s)':<12}|{'Ratio (A/B)':<12}|")
+    print('-' * (scene_col_width + 41))
     
     for scene in common_scenes:
         time_a = data_a[scene]['training_time']
@@ -143,13 +150,13 @@ def compare_training_times(scenes_a, data_a, scenes_b, data_b):
         if time_a is not None and time_b is not None and time_b != 0:
             ratio = time_a / time_b
             ratios.append(ratio)
-            print(f"{scene:<12} {time_a:<12.2f} {time_b:<12.2f} {ratio:<12.4f}")
+            print(f"{scene:<{scene_col_width}}|{time_a:<12.2f}|{time_b:<12.2f}|{ratio:<12.4f}|")
         else:
-            print(f"{scene:<12} {'N/A':<12} {'N/A':<12} {'N/A':<12}")
+            print(f"{scene:<{scene_col_width}}|{'N/A':<12}|{'N/A':<12}|{'N/A':<12}|")
     
     if ratios:
         mean_ratio = sum(ratios) / len(ratios)
-        print('-' * 50)
+        print('-' * (scene_col_width + 41))
         print(f"Mean ratio (A/B): {mean_ratio:.4f}")
         print(f"Number of scenes compared: {len(ratios)}")
 
