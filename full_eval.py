@@ -12,8 +12,8 @@
 import os
 from argparse import ArgumentParser
 
-mipnerf360_outdoor_scenes = ["garden"]  # ["bicycle", "flowers", "garden", "stump", "treehill"]
-mipnerf360_indoor_scenes = []  # ["room", "counter", "kitchen", "bonsai"]
+mipnerf360_outdoor_scenes = ["bicycle", "flowers", "garden", "stump", "treehill"]
+mipnerf360_indoor_scenes = ["room", "counter", "kitchen", "bonsai"]
 
 parser = ArgumentParser(description="Full evaluation script parameters")
 parser.add_argument("--skip_training", action="store_true")
@@ -28,19 +28,41 @@ all_scenes.extend(mipnerf360_outdoor_scenes)
 all_scenes.extend(mipnerf360_indoor_scenes)
 
 if not args.skip_training:
-    for scene in all_scenes:
+    for scene in mipnerf360_outdoor_scenes:
         scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
         scene_output_path=os.path.join(args.output_path,scene)
+        test_epochs = " --test_epochs " + " ".join(map(str, range(0, 301)))
+        # checkpoint_epochs = " --checkpoint_epochs 10 50 100"
+        # start_checkpoint = " --start_checkpoint /home/jiaqi/workspace/LiteGS/output/garden/chkpnt100.pth"
         res = os.system("time python example_train.py -s " + scene_input_path + " -i images_4 -m " + scene_output_path + " --eval --sh_degree 3")
+        if res != 0:
+            print(f"Training failed for scene {scene}")
+            exit(1)
+    
+    for scene in mipnerf360_indoor_scenes:
+        scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
+        scene_output_path=os.path.join(args.output_path,scene)
+        test_epochs = " --test_epochs " + " ".join(map(str, range(0, 301)))
+        # checkpoint_epochs = " --checkpoint_epochs 10 50 100"
+        # start_checkpoint = " --start_checkpoint /home/jiaqi/workspace/LiteGS/output/garden/chkpnt100.pth"
+        res = os.system("time python example_train.py -s " + scene_input_path + " -i images_2 -m " + scene_output_path + " --eval --sh_degree 3")
         if res != 0:
             print(f"Training failed for scene {scene}")
             exit(1)
 
 output_images_flag = " --output_images" if args.save_images else ""
-for scene in all_scenes:
+for scene in mipnerf360_outdoor_scenes:
     scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
     scene_output_path=os.path.join(args.output_path,scene)
     res = os.system("time python example_metrics.py -s " + scene_input_path + " -i images_4 -m " + scene_output_path + " --sh_degree 3" + output_images_flag)
+    if res != 0:
+        print(f"Evaluation failed for scene {scene}")
+        exit(1)
+
+for scene in mipnerf360_indoor_scenes:
+    scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
+    scene_output_path=os.path.join(args.output_path,scene)
+    res = os.system("time python example_metrics.py -s " + scene_input_path + " -i images_2 -m " + scene_output_path + " --sh_degree 3" + output_images_flag)
     if res != 0:
         print(f"Evaluation failed for scene {scene}")
         exit(1)
