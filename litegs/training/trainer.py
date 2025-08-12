@@ -118,6 +118,11 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
     StatisticsHelperInst.reset(xyz.shape[-2],xyz.shape[-1],density_controller.is_densify_actived)
     progress_bar = tqdm(range(start_epoch, total_epoch), desc="Training progress")
     progress_bar.update(0)
+    
+    # Timing variables for per-iteration monitoring
+    timing_interval = 10
+    start_event = torch.cuda.Event(enable_timing=True)
+    end_event = torch.cuda.Event(enable_timing=True)
 
     for epoch in range(start_epoch,total_epoch):
         print("="*90)
@@ -134,6 +139,10 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
 
         with StatisticsHelperInst.try_start(epoch):
             for view_matrix,proj_matrix,frustumplane,gt_image in train_loader:
+                # Start timing for this iteration if we're at a timing interval
+                if schedular.last_epoch % timing_interval == 0:
+                    start_event.record()
+                
                 view_matrix=view_matrix.cuda()
                 proj_matrix=proj_matrix.cuda()
                 frustumplane=frustumplane.cuda()
@@ -169,6 +178,15 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
 
                 # Before step(), the last_epoch is 0. After step(), the last_epoch is 1.
                 schedular.step()
+                
+                # Record timing if this was a timing iteration
+                if (schedular.last_epoch - 1) % timing_interval == 0:
+                    end_event.record()
+                    torch.cuda.synchronize()
+                    per_iter_time_ms = start_event.elapsed_time(end_event)
+                    per_iter_time_us = per_iter_time_ms * 1000
+                    if tb_writer:
+                        tb_writer.add_scalar('timing/per_iter_time_us', per_iter_time_us, schedular.last_epoch-1)
 
             # If last_epoch is 10, that means we have run through 10 iterations: 0-9.
             print(f"[EPOCH {epoch}] Training done. Total iterations used till now: {schedular.last_epoch}")
