@@ -102,3 +102,11 @@ if __name__ == "__main__":
         print("  PSNR : {:>12.7f}".format(float(psnr_mean)))
         print("  LPIPS: {:>12.7f}".format(float(lpips_mean)))
         print("")
+
+        # Save metrics to file
+        metrics_file = os.path.join(lp.model_path, f"metrics_{loader_name.lower()}.txt")
+        with open(metrics_file, 'w') as f:
+            f.write(f"Scene: {lp.model_path} {loader_name}\n")
+            f.write(f"SSIM:  {float(ssim_mean):.7f}\n")
+            f.write(f"PSNR:  {float(psnr_mean):.7f}\n")
+            f.write(f"LPIPS: {float(lpips_mean):.7f}\n")
