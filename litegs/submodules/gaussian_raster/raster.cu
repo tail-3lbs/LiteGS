@@ -190,9 +190,14 @@ __global__ void raster_forward_kernel(
 
     const int batch_id = blockIdx.y;
     int tile_id = blockIdx.x * blockDim.y + threadIdx.y + 1;// +1, tile_id 0 is invalid
-    if (specific_tiles.size(1) != 0 && (blockIdx.x * blockDim.y + threadIdx.y < specific_tiles.size(1)))
-    {
-        tile_id = specific_tiles[batch_id][blockIdx.x * blockDim.y + threadIdx.y];
+
+    if (specific_tiles.size(1) != 0) {
+        if (blockIdx.x * blockDim.y + threadIdx.y >= specific_tiles.size(1)) {
+            // Jiaqi: The index of specific_tiles is out of bound.
+            return;
+        } else {
+            tile_id = specific_tiles[batch_id][blockIdx.x * blockDim.y + threadIdx.y];
+        }        
     }
 
     if (tile_id != 0 && tile_id < start_index.size(1) - 1)
@@ -597,9 +602,14 @@ __global__ void raster_backward_kernel(
 
     const int batch_id = blockIdx.y;
     int tile_id = blockIdx.x * blockDim.y + threadIdx.y + 1;// +1, tile_id 0 is invalid
-    if (specific_tiles.size(1) != 0 && (blockIdx.x * blockDim.y + threadIdx.y < specific_tiles.size(1)))
-    {
-        tile_id = specific_tiles[batch_id][blockIdx.x * blockDim.y + threadIdx.y];
+
+    if (specific_tiles.size(1) != 0) {
+        if (blockIdx.x * blockDim.y + threadIdx.y >= specific_tiles.size(1)) {
+            // Jiaqi: The index of specific_tiles is out of bound.
+            return;
+        } else {
+            tile_id = specific_tiles[batch_id][blockIdx.x * blockDim.y + threadIdx.y];
+        }        
     }
 
     if (tile_id != 0 && tile_id < start_index.size(1) - 1)
