@@ -168,5 +168,14 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
 
         if epoch in save_checkpoint:
             io_manager.save_checkpoint(lp.model_path,epoch,opt,schedular)
-    
+
+    # Save final Gaussian count to file
+    final_gaussian_count = xyz.shape[1] * xyz.shape[2]
+    gaussian_count_file = os.path.join(lp.model_path, "gaussian_count.txt")
+    with open(gaussian_count_file, 'w') as f:
+        f.write(f"Final Gaussian count: {final_gaussian_count}\n")
+        f.write(f"Total epochs: {total_epoch}\n")
+        f.write(f"Final iteration: {schedular.last_epoch}\n")
+    print(f"Saved Gaussian count ({final_gaussian_count}) to {gaussian_count_file}")
+
     return
