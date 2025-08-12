@@ -118,7 +118,7 @@ if not args.skip_training:
             target_primitives=big_budgets[scene_name]
             scene_output_path=os.path.join(args.output_path,scene_name+'-{}k'.format(int(target_primitives/1000)))
             print("scene:{} #primitive:{}".format(scene_name,target_primitives))
-            result = os.system("python example_train.py -s {0} -m {1} --eval --sh_degree 3 --target_primitives {2} {3} {4} >> takes_time.txt".format(
+            result = os.system("python example_train.py -s {0} -m {1} --eval --sh_degree 3 --target_primitives {2} {3} {4}".format(
                     scene_input_path,
                     scene_output_path,
                     target_primitives,
