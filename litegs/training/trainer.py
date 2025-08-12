@@ -139,11 +139,6 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                 frustumplane=frustumplane.cuda()
                 gt_image=gt_image.cuda()/255.0
 
-                # Calculate tile dimensions once after gt_image is finalized
-                tiles_x=int(math.ceil(gt_image.shape[3]/float(pp.tile_size[1])))
-                tiles_y=int(math.ceil(gt_image.shape[2]/float(pp.tile_size[0])))
-                total_tiles = tiles_x * tiles_y
-
                 #cluster culling
                 visible_chunkid,culled_xyz,culled_scale,culled_rot,culled_sh_0,culled_sh_rest,culled_opacity=render.render_preprocess(cluster_origin,cluster_extend,frustumplane,
                                                                                                                xyz,scale,rot,sh_0,sh_rest,opacity,op,pp)
@@ -168,9 +163,6 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                     opt.step()
 
                 if tb_writer:
-                    tb_writer.add_scalar('counts/1-render_scale', render_scale, schedular.last_epoch)
-                    tb_writer.add_scalar('counts/2-gt_image_height', gt_image.shape[2], schedular.last_epoch)
-                    tb_writer.add_scalar('counts/3-total_tiles', total_tiles, schedular.last_epoch)
                     tb_writer.add_scalar('counts/4-total_gaussians', total_gaussians, schedular.last_epoch)
 
                 opt.zero_grad(set_to_none = True)
