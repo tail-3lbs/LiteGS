@@ -22,7 +22,7 @@ def __l1_loss(network_output:torch.Tensor, gt:torch.Tensor)->torch.Tensor:
     return torch.abs((network_output - gt)).mean()
 
 def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.PipelineParams,dp:arguments.DensifyParams,
-          test_epochs=[],save_ply=[],save_checkpoint=[],start_checkpoint:str=None):
+          test_epochs=[],save_ply=[],save_checkpoint=[],start_checkpoint=None):
     
     cameras_info:dict[int,data.CameraInfo]=None
     camera_frames:list[data.CameraFrame]=None
