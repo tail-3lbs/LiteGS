@@ -1,7 +1,6 @@
 from argparse import ArgumentParser, Namespace
 import torch
 import sys
-import time
 import os
 
 import litegs
@@ -25,17 +24,4 @@ if __name__ == "__main__":
     pp=litegs.arguments.PipelineParams.extract(args)
     dp=litegs.arguments.DensifyParams.extract(args)
 
-    # Record training start time
-    start_time = time.time()
-    
     litegs.training.start(lp,op,pp,dp,args.test_epochs,args.save_epochs,args.checkpoint_epochs,args.start_checkpoint)
-    
-    # Record training end time and save to file
-    end_time = time.time()
-    wall_time = end_time - start_time
-    
-    # Save wall time to file
-    timing_file = os.path.join(lp.model_path, "training_time.txt")
-    with open(timing_file, 'w') as f:
-        f.write(f"Training wall time: {wall_time:.2f} seconds\n")
-        f.write(f"Training wall time: {wall_time/60:.2f} minutes\n")

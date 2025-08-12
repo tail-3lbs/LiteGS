@@ -276,6 +276,14 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
         f.write(f"Final iteration: {schedular.last_epoch}\n")
     print(f"Saved Gaussian count ({final_gaussian_count}) to {gaussian_count_file}")
 
+    # Save training time to file
+    training_time = progress_bar.format_dict['elapsed']
+    timing_file = os.path.join(lp.model_path, "training_time.txt")
+    with open(timing_file, 'w') as f:
+        f.write(f"Training wall time: {training_time:.2f} seconds\n")
+        f.write(f"Training wall time: {training_time/60:.2f} minutes\n")
+    print(f"Saved training time ({training_time:.2f}s) to {timing_file}")
+
     # Close TensorBoard writer
     if tb_writer:
         tb_writer.close()
