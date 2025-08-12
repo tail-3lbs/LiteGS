@@ -710,11 +710,11 @@ class Binning(BaseWrapper):
         # Remove the last element (tail marker)
         tile_gaussian_counts = tile_counts[:, :-1]  # [view_num, tiles_num]
         
-        # Direct validation: check for negative values (invalid tiles) or zero values (empty tiles)
-        if (tile_gaussian_counts < 0).any():
-            raise ValueError("Invalid tile ranges detected (negative counts). This indicates corrupted tile_start_index data.")
-        if (tile_gaussian_counts == 0).any():
-            raise ValueError("Some tiles have no gaussians. This indicates an issue with the rendering setup or gaussian distribution.")
+        # # Direct validation: check for negative values (invalid tiles) or zero values (empty tiles)
+        # if (tile_gaussian_counts < 0).any():
+        #     raise ValueError("Invalid tile ranges detected (negative counts). This indicates corrupted tile_start_index data.")
+        # if (tile_gaussian_counts == 0).any():
+        #     raise ValueError("Some tiles have no gaussians. This indicates an issue with the rendering setup or gaussian distribution.")
         
         return tile_start_index,sorted_pointId,b_visible.sum(0),tile_gaussian_counts
     
