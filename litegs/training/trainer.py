@@ -118,7 +118,7 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                 actived_sh_degree=min(int(epoch/5),lp.sh_degree)
 
         with StatisticsHelperInst.try_start(epoch):
-            for view_matrix,proj_matrix,frustumplane,gt_image in train_loader:                
+            for view_matrix,proj_matrix,frustumplane,gt_image in train_loader:
                 view_matrix=view_matrix.cuda()
                 proj_matrix=proj_matrix.cuda()
                 frustumplane=frustumplane.cuda()
