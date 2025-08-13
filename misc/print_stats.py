@@ -169,8 +169,8 @@ def compare_metrics(scenes_a, data_a, scenes_b, data_b):
     psnr_ratios = []
     time_ratios = []
     
-    print(f"{'Scene':<{scene_col_width}}|{'Gaussian A':<12}|{'Gaussian B':<12}|{'Ratio (B/A)':<12}|{'PSNR A':<10}|{'PSNR B':<10}|{'Ratio (B/A)':<12}|{'Time A (s)':<12}|{'Time B (s)':<12}|{'Ratio (B/A)':<12}|{'Speedup':<10}|")
-    print('-' * (scene_col_width + 119))
+    print(f"{'Scene':<{scene_col_width}}|{'Gaussian A':<12}|{'Gaussian B':<12}|{'Ratio (B/A)':<12}|{'PSNR A':<10}|{'PSNR B':<10}|{'Ratio (B/A)':<12}|{'Time A (s)':<12}|{'Time B (s)':<12}|{'Ratio (B/A)':<12}|{'Speedup':<8}|")
+    print('-' * (scene_col_width + 123))
     
     for scene in common_scenes:
         gaussian_a = mean_data_a[scene]['gaussian_count']
@@ -211,10 +211,10 @@ def compare_metrics(scenes_a, data_a, scenes_b, data_b):
         time_ratio_str = f"{time_ratio:.4f}" if isinstance(time_ratio, (int, float)) else time_ratio
         
         speedup_str = f"{1/time_ratio:.2f}x" if isinstance(time_ratio, (int, float)) else "N/A"
-        print(f"{scene:<{scene_col_width}}|{gaussian_a_str:<12}|{gaussian_b_str:<12}|{gaussian_ratio_str:<12}|{psnr_a_str:<10}|{psnr_b_str:<10}|{psnr_ratio_str:<12}|{time_a_str:<12}|{time_b_str:<12}|{time_ratio_str:<12}|{speedup_str:<10}|")
+        print(f"{scene:<{scene_col_width}}|{gaussian_a_str:<12}|{gaussian_b_str:<12}|{gaussian_ratio_str:<12}|{psnr_a_str:<10}|{psnr_b_str:<10}|{psnr_ratio_str:<12}|{time_a_str:<12}|{time_b_str:<12}|{time_ratio_str:<12}|{speedup_str:<8}|")
     
     # Add mean row
-    print('-' * (scene_col_width + 119))
+    print('-' * (scene_col_width + 123))
     
     # Calculate mean values for the mean row
     gaussian_a_values = [mean_data_a[scene]['gaussian_count'] for scene in common_scenes 
@@ -266,7 +266,7 @@ def compare_metrics(scenes_a, data_a, scenes_b, data_b):
     
     mean_speedup_str = f"{1/mean_time_ratio_val:.2f}x" if mean_time_ratio_val is not None else "N/A"
     
-    print(f"{'Mean':<{scene_col_width}}|{mean_gaussian_a_str:<12}|{mean_gaussian_b_str:<12}|{mean_gaussian_ratio_str:<12}|{mean_psnr_a_str:<10}|{mean_psnr_b_str:<10}|{mean_psnr_ratio_str:<12}|{mean_time_a_str:<12}|{mean_time_b_str:<12}|{mean_time_ratio_str:<12}|{mean_speedup_str:<10}|")
+    print(f"{'Mean':<{scene_col_width}}|{mean_gaussian_a_str:<12}|{mean_gaussian_b_str:<12}|{mean_gaussian_ratio_str:<12}|{mean_psnr_a_str:<10}|{mean_psnr_b_str:<10}|{mean_psnr_ratio_str:<12}|{mean_time_a_str:<12}|{mean_time_b_str:<12}|{mean_time_ratio_str:<12}|{mean_speedup_str:<8}|")
 
 def build_table(path_a, path_b=None):
     """Build table(s) with scene data"""
