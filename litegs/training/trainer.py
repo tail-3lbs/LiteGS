@@ -226,6 +226,8 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
         progress_bar.update()  
 
         if epoch in save_ply or epoch==total_epoch-1:
+            if epoch == total_epoch-1:
+                progress_bar.close()
             if pp.cluster_size:
                 tensors=scene.cluster.uncluster(xyz,scale,rot,sh_0,sh_rest,opacity)
             else:
