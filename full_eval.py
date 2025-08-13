@@ -116,7 +116,7 @@ if not args.skip_training:
             #     ))
             #full
             target_primitives=big_budgets[scene_name]
-            scene_output_path=os.path.join(args.output_path,scene_name+'-{}k'.format(int(target_primitives/1000))+'-litegs')
+            scene_output_path=os.path.join(args.output_path,scene_name+'-{}k'.format(int(target_primitives/1000))+'-litegs3')
             print("scene:{} #primitive:{}".format(scene_name,target_primitives))
             result = os.system("python example_train.py -s {0} -m {1} --eval --sh_degree 3 --target_primitives {2} {3} {4}".format(
                     scene_input_path,
@@ -136,7 +136,7 @@ for dataset,scenes in datasets.items():
         #     scene_output_path=os.path.join(args.output_path,scene_name+'-{}k'.format(int(target_primitives/1000)))
         #     os.system("python example_metrics.py -s {0} -m {1} --sh_degree 3 {2}  >> output.txt".format(scene_input_path,scene_output_path,img_config[dataset]))
         target_primitives=big_budgets[scene_name]
-        scene_output_path=os.path.join(args.output_path,scene_name+'-{}k'.format(int(target_primitives/1000))+'-litegs')
+        scene_output_path=os.path.join(args.output_path,scene_name+'-{}k'.format(int(target_primitives/1000))+'-litegs3')
         result = os.system("python example_metrics.py -s {0} -m {1} --sh_degree 3 {2}".format(scene_input_path,scene_output_path,img_config[dataset]))
         if result != 0:
             print(f"Metrics calculation failed for scene {scene_name} with exit code {result}")
