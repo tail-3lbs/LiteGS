@@ -210,32 +210,63 @@ def compare_metrics(scenes_a, data_a, scenes_b, data_b):
         time_b_str = f"{time_b:.2f}" if time_b is not None else "N/A"
         time_ratio_str = f"{time_ratio:.4f}" if isinstance(time_ratio, (int, float)) else time_ratio
         
-        speedup_str = f"{1/time_ratio:.4f}x" if isinstance(time_ratio, (int, float)) else "N/A"
+        speedup_str = f"{1/time_ratio:.2f}x" if isinstance(time_ratio, (int, float)) else "N/A"
         print(f"{scene:<{scene_col_width}}|{gaussian_a_str:<12}|{gaussian_b_str:<12}|{gaussian_ratio_str:<12}|{psnr_a_str:<10}|{psnr_b_str:<10}|{psnr_ratio_str:<12}|{time_a_str:<12}|{time_b_str:<12}|{time_ratio_str:<12}|{speedup_str:<10}|")
     
-    # Print summary statistics
+    # Add mean row
     print('-' * (scene_col_width + 119))
-    print("SUMMARY STATISTICS:")
     
-    if gaussian_ratios:
-        mean_gaussian_ratio = sum(gaussian_ratios) / len(gaussian_ratios)
-        print(f"Mean Gaussian ratio (B/A): {mean_gaussian_ratio:.4f} (n={len(gaussian_ratios)})")
-    else:
-        print("Mean Gaussian ratio (B/A): N/A")
+    # Calculate mean values for the mean row
+    gaussian_a_values = [mean_data_a[scene]['gaussian_count'] for scene in common_scenes 
+                       if mean_data_a[scene]['gaussian_count'] is not None and 
+                          mean_data_b[scene]['gaussian_count'] is not None]
+    gaussian_b_values = [mean_data_b[scene]['gaussian_count'] for scene in common_scenes 
+                       if mean_data_a[scene]['gaussian_count'] is not None and 
+                          mean_data_b[scene]['gaussian_count'] is not None]
     
-    if psnr_ratios:
-        mean_psnr_ratio = sum(psnr_ratios) / len(psnr_ratios)
-        print(f"Mean PSNR ratio (B/A): {mean_psnr_ratio:.4f} (n={len(psnr_ratios)})")
-    else:
-        print("Mean PSNR ratio (B/A): N/A")
+    psnr_a_values = [mean_data_a[scene]['psnr'] for scene in common_scenes 
+                    if mean_data_a[scene]['psnr'] is not None and 
+                       mean_data_b[scene]['psnr'] is not None]
+    psnr_b_values = [mean_data_b[scene]['psnr'] for scene in common_scenes 
+                    if mean_data_a[scene]['psnr'] is not None and 
+                       mean_data_b[scene]['psnr'] is not None]
     
-    if time_ratios:
-        mean_time_ratio = sum(time_ratios) / len(time_ratios)
-        speedup = 1 / mean_time_ratio
-        print(f"Mean Training Time ratio (B/A): {mean_time_ratio:.4f} (n={len(time_ratios)})")
-        print(f"Speedup (B over A): {speedup:.2f}x")
-    else:
-        print("Mean Training Time ratio (B/A): N/A")
+    time_a_values = [mean_data_a[scene]['training_time'] for scene in common_scenes 
+                    if mean_data_a[scene]['training_time'] is not None and 
+                       mean_data_b[scene]['training_time'] is not None]
+    time_b_values = [mean_data_b[scene]['training_time'] for scene in common_scenes 
+                    if mean_data_a[scene]['training_time'] is not None and 
+                       mean_data_b[scene]['training_time'] is not None]
+    
+    # Calculate means
+    mean_gaussian_a = sum(gaussian_a_values) / len(gaussian_a_values) if gaussian_a_values else None
+    mean_gaussian_b = sum(gaussian_b_values) / len(gaussian_b_values) if gaussian_b_values else None
+    mean_psnr_a = sum(psnr_a_values) / len(psnr_a_values) if psnr_a_values else None
+    mean_psnr_b = sum(psnr_b_values) / len(psnr_b_values) if psnr_b_values else None
+    mean_time_a = sum(time_a_values) / len(time_a_values) if time_a_values else None
+    mean_time_b = sum(time_b_values) / len(time_b_values) if time_b_values else None
+    
+    # Calculate ratios for mean row
+    mean_gaussian_ratio_val = mean_gaussian_b / mean_gaussian_a if mean_gaussian_a and mean_gaussian_b else None
+    mean_psnr_ratio_val = mean_psnr_b / mean_psnr_a if mean_psnr_a and mean_psnr_b else None
+    mean_time_ratio_val = mean_time_b / mean_time_a if mean_time_a and mean_time_b else None
+    
+    # Format values for mean row
+    mean_gaussian_a_str = f"{mean_gaussian_a:,.0f}" if mean_gaussian_a is not None else "N/A"
+    mean_gaussian_b_str = f"{mean_gaussian_b:,.0f}" if mean_gaussian_b is not None else "N/A"
+    mean_gaussian_ratio_str = f"{mean_gaussian_ratio_val:.4f}" if mean_gaussian_ratio_val is not None else "N/A"
+    
+    mean_psnr_a_str = f"{mean_psnr_a:.4f}" if mean_psnr_a is not None else "N/A"
+    mean_psnr_b_str = f"{mean_psnr_b:.4f}" if mean_psnr_b is not None else "N/A"
+    mean_psnr_ratio_str = f"{mean_psnr_ratio_val:.4f}" if mean_psnr_ratio_val is not None else "N/A"
+    
+    mean_time_a_str = f"{mean_time_a:.2f}" if mean_time_a is not None else "N/A"
+    mean_time_b_str = f"{mean_time_b:.2f}" if mean_time_b is not None else "N/A"
+    mean_time_ratio_str = f"{mean_time_ratio_val:.4f}" if mean_time_ratio_val is not None else "N/A"
+    
+    mean_speedup_str = f"{1/mean_time_ratio_val:.2f}x" if mean_time_ratio_val is not None else "N/A"
+    
+    print(f"{'Mean':<{scene_col_width}}|{mean_gaussian_a_str:<12}|{mean_gaussian_b_str:<12}|{mean_gaussian_ratio_str:<12}|{mean_psnr_a_str:<10}|{mean_psnr_b_str:<10}|{mean_psnr_ratio_str:<12}|{mean_time_a_str:<12}|{mean_time_b_str:<12}|{mean_time_ratio_str:<12}|{mean_speedup_str:<10}|")
 
 def build_table(path_a, path_b=None):
     """Build table(s) with scene data"""
