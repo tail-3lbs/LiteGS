@@ -1,7 +1,6 @@
 from argparse import ArgumentParser, Namespace
 import torch
 import sys
-import os
 
 import litegs
 import litegs.config
