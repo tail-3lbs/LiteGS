@@ -120,7 +120,7 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
     progress_bar.update(0)
     
     # Logging variables for per-iteration monitoring
-    logging_interval = 10
+    logging_interval = 100
     start_event = torch.cuda.Event(enable_timing=True)
     end_event = torch.cuda.Event(enable_timing=True)
 
