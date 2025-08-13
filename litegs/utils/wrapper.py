@@ -701,22 +701,8 @@ class Binning(BaseWrapper):
 
         # range
         tile_start_index=litegs_fused.tileRange(sorted_tileId,int(allocate_size),int(tiles_num-1+1))#max_tile_id:tilesnum-1, +1 for offset(tileId 0 is invalid)
-            
-        # Compute gaussian counts per tile
-        # tile_start_index has shape [view_num, max_tileId + 2]
-        # tile_start_index[view_id][tile_id] gives start index for tile_id (1-based)
-        # Count for tile i = tile_start_index[i+1] - tile_start_index[i]
-        tile_counts = tile_start_index[:, 1:] - tile_start_index[:, :-1]  # [view_num, max_tileId + 1]
-        # Remove the last element (tail marker)
-        tile_gaussian_counts = tile_counts[:, :-1]  # [view_num, tiles_num]
-        
-        # # Direct validation: check for negative values (invalid tiles) or zero values (empty tiles)
-        # if (tile_gaussian_counts < 0).any():
-        #     raise ValueError("Invalid tile ranges detected (negative counts). This indicates corrupted tile_start_index data.")
-        # if (tile_gaussian_counts == 0).any():
-        #     raise ValueError("Some tiles have no gaussians. This indicates an issue with the rendering setup or gaussian distribution.")
-        
-        return tile_start_index,sorted_pointId,b_visible.sum(0),tile_gaussian_counts
+
+        return tile_start_index,sorted_pointId,b_visible.sum(0)
     
     
     _fused=__binning_fused
