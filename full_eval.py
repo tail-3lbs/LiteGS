@@ -77,8 +77,8 @@ args, _ = parser.parse_known_args()
 
 
 datasets={
-    "mipnerf360_indoor":["garden"],  # ["bicycle", "flowers", "garden", "stump", "treehill"],
-    "mipnerf360_outdoor":[],  # ["room", "counter", "kitchen", "bonsai"],
+    "mipnerf360_indoor":["bicycle", "flowers", "garden", "stump", "treehill"],
+    "mipnerf360_outdoor":["room", "counter", "kitchen", "bonsai"],
     # "tanksandtemples":["truck", "train"],
     # "deepblending":["drjohnson", "playroom"],
 }
