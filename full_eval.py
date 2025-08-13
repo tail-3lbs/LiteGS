@@ -30,7 +30,7 @@ all_scenes.extend(mipnerf360_indoor_scenes)
 if not args.skip_training:
     for scene in mipnerf360_outdoor_scenes:
         scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
-        scene_output_path=os.path.join(args.output_path,scene)
+        scene_output_path=os.path.join(args.output_path,scene+'-litegs')
         test_epochs = " --test_epochs " + " ".join(map(str, range(0, 301)))
         # checkpoint_epochs = " --checkpoint_epochs 10 50 100"
         # start_checkpoint = " --start_checkpoint /home/jiaqi/workspace/LiteGS/output/garden/chkpnt100.pth"
@@ -41,7 +41,7 @@ if not args.skip_training:
     
     for scene in mipnerf360_indoor_scenes:
         scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
-        scene_output_path=os.path.join(args.output_path,scene)
+        scene_output_path=os.path.join(args.output_path,scene+'-litegs')
         test_epochs = " --test_epochs " + " ".join(map(str, range(0, 301)))
         # checkpoint_epochs = " --checkpoint_epochs 10 50 100"
         # start_checkpoint = " --start_checkpoint /home/jiaqi/workspace/LiteGS/output/garden/chkpnt100.pth"
@@ -53,7 +53,7 @@ if not args.skip_training:
 output_images_flag = " --output_images" if args.save_images else ""
 for scene in mipnerf360_outdoor_scenes:
     scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
-    scene_output_path=os.path.join(args.output_path,scene)
+    scene_output_path=os.path.join(args.output_path,scene+'-litegs')
     res = os.system("time python example_metrics.py -s " + scene_input_path + " -i images_4 -m " + scene_output_path + " --sh_degree 3" + output_images_flag)
     if res != 0:
         print(f"Evaluation failed for scene {scene}")
@@ -61,7 +61,7 @@ for scene in mipnerf360_outdoor_scenes:
 
 for scene in mipnerf360_indoor_scenes:
     scene_input_path=os.path.join(args.mipnerf360,scene,args.colmap_subfolder)
-    scene_output_path=os.path.join(args.output_path,scene)
+    scene_output_path=os.path.join(args.output_path,scene+'-litegs')
     res = os.system("time python example_metrics.py -s " + scene_input_path + " -i images_2 -m " + scene_output_path + " --sh_degree 3" + output_images_flag)
     if res != 0:
         print(f"Evaluation failed for scene {scene}")
