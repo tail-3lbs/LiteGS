@@ -8,12 +8,6 @@ import math
 import os
 import torch.cuda.nvtx as nvtx
 
-try:
-    from torch.utils.tensorboard import SummaryWriter
-    TENSORBOARD_FOUND = True
-except ImportError:
-    TENSORBOARD_FOUND = False
-
 from .. import arguments
 from .. import data
 from .. import io_manager
@@ -52,15 +46,6 @@ def __l1_loss(network_output:torch.Tensor, gt:torch.Tensor)->torch.Tensor:
 
 def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.PipelineParams,dp:arguments.DensifyParams,
           test_epochs=[],save_ply=[],save_checkpoint=[],start_checkpoint=None):
-
-    # Setup TensorBoard writer
-    tb_writer = None
-    if TENSORBOARD_FOUND:
-        tb_writer = SummaryWriter(os.path.join(lp.model_path, "tensorboard"))
-        print("TensorBoard logging enabled at:", os.path.join(lp.model_path, "tensorboard"))
-    else:
-        print("TensorBoard not available: not logging progress")
-
     
     cameras_info:dict[int,data.CameraInfo]=None
     camera_frames:list[data.CameraFrame]=None
@@ -118,11 +103,6 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
     StatisticsHelperInst.reset(xyz.shape[-2],xyz.shape[-1],density_controller.is_densify_actived)
     progress_bar = tqdm(range(start_epoch, total_epoch), desc="Training progress")
     progress_bar.update(0)
-    
-    # Logging variables for per-iteration monitoring
-    logging_interval = 100
-    start_event = torch.cuda.Event(enable_timing=True)
-    end_event = torch.cuda.Event(enable_timing=True)
 
     for epoch in range(start_epoch,total_epoch):
         print("="*90)
@@ -138,25 +118,16 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                 actived_sh_degree=min(int(epoch/5),lp.sh_degree)
 
         with StatisticsHelperInst.try_start(epoch):
-            for view_matrix,proj_matrix,frustumplane,gt_image in train_loader:
-                # Start timing for this iteration if we're at a logging interval
-                if schedular.last_epoch % logging_interval == 0:
-                    start_event.record()
-                
+            for view_matrix,proj_matrix,frustumplane,gt_image in train_loader:                
                 view_matrix=view_matrix.cuda()
                 proj_matrix=proj_matrix.cuda()
                 frustumplane=frustumplane.cuda()
                 gt_image=gt_image.cuda()/255.0
 
-                # Calculate tile dimensions once after gt_image is finalized
-                tiles_x=int(math.ceil(gt_image.shape[3]/float(pp.tile_size[1])))
-                tiles_y=int(math.ceil(gt_image.shape[2]/float(pp.tile_size[0])))
-                total_tiles = tiles_x * tiles_y
-
                 #cluster culling
                 visible_chunkid,culled_xyz,culled_scale,culled_rot,culled_sh_0,culled_sh_rest,culled_opacity=render.render_preprocess(cluster_origin,cluster_extend,frustumplane,
                                                                                                                xyz,scale,rot,sh_0,sh_rest,opacity,op,pp)
-                img,transmitance,depth,normal,primitive_visible,tile_gaussian_counts=render.render(view_matrix,proj_matrix,culled_xyz,culled_scale,culled_rot,culled_sh_0,culled_sh_rest,culled_opacity,
+                img,transmitance,depth,normal,primitive_visible=render.render(view_matrix,proj_matrix,culled_xyz,culled_scale,culled_rot,culled_sh_0,culled_sh_rest,culled_opacity,
                                                             actived_sh_degree,gt_image.shape[2:],pp)
                 
                 l1_loss=__l1_loss(img,gt_image)
@@ -176,38 +147,10 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                 else:
                     opt.step()
 
-                # Log tensorboard metrics at logging intervals
-                if tb_writer and schedular.last_epoch % logging_interval == 0:
-                    tb_writer.add_scalar('counts/1-render_scale', 1, schedular.last_epoch)
-                    tb_writer.add_scalar('counts/2-gt_image_height', gt_image.shape[2], schedular.last_epoch)
-                    tb_writer.add_scalar('counts/3-total_tiles', total_tiles, schedular.last_epoch)
-                    tb_writer.add_scalar('counts/4-total_gaussians', total_gaussians, schedular.last_epoch)
-
-                    # Tile gaussian overlap statistics
-                    # tile_gaussian_counts shape: [view_num, tiles_num] 
-                    # Flatten across all views and tiles for statistics
-                    # All tiles are guaranteed to have at least one gaussian
-                    tile_counts_flat = tile_gaussian_counts.flatten().float()
-                    
-                    tb_writer.add_scalar('tile_overlap/mean', tile_counts_flat.mean().item(), schedular.last_epoch)
-                    tb_writer.add_scalar('tile_overlap/median', tile_counts_flat.median().item(), schedular.last_epoch)  
-                    tb_writer.add_scalar('tile_overlap/max', tile_counts_flat.max().item(), schedular.last_epoch)
-                    tb_writer.add_scalar('tile_overlap/min', tile_counts_flat.min().item(), schedular.last_epoch)
-                    tb_writer.add_scalar('tile_overlap/total_tiles', tile_counts_flat.numel(), schedular.last_epoch)
-
                 opt.zero_grad(set_to_none = True)
 
                 # Before step(), the last_epoch is 0. After step(), the last_epoch is 1.
                 schedular.step()
-                
-                # Record timing if this was a logging iteration
-                if (schedular.last_epoch - 1) % logging_interval == 0:
-                    end_event.record()
-                    torch.cuda.synchronize()
-                    per_iter_time_ms = start_event.elapsed_time(end_event)
-                    per_iter_time_us = per_iter_time_ms * 1000
-                    if tb_writer:
-                        tb_writer.add_scalar('timing/per_iter_time_us', per_iter_time_us, schedular.last_epoch-1)
 
             # If last_epoch is 10, that means we have run through 10 iterations: 0-9.
             print(f"[EPOCH {epoch}] Training done. Total iterations used till now: {schedular.last_epoch}")
@@ -232,7 +175,7 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
                         gt_image=gt_image.cuda()/255.0
                         _,culled_xyz,culled_scale,culled_rot,culled_sh_0,culled_sh_rest,culled_opacity=render.render_preprocess(_cluster_origin,_cluster_extend,frustumplane,
                                                                                                                 xyz,scale,rot,sh_0,sh_rest,opacity,op,pp)
-                        img,transmitance,depth,normal,_,_=render.render(view_matrix,proj_matrix,culled_xyz,culled_scale,culled_rot,culled_sh_0,culled_sh_rest,culled_opacity,
+                        img,transmitance,depth,normal,_=render.render(view_matrix,proj_matrix,culled_xyz,culled_scale,culled_rot,culled_sh_0,culled_sh_rest,culled_opacity,
                                                                     actived_sh_degree,gt_image.shape[2:],pp)
                         psnr_list.append(psnr_metrics(img,gt_image).unsqueeze(0))
                     psnr_mean = torch.concat(psnr_list,dim=0).mean()
@@ -283,10 +226,5 @@ def start(lp:arguments.ModelParams,op:arguments.OptimizationParams,pp:arguments.
         f.write(f"Training wall time: {training_time:.2f} seconds\n")
         f.write(f"Training wall time: {training_time/60:.2f} minutes\n")
     print(f"Saved training time ({training_time:.2f}s) to {timing_file}")
-
-    # Close TensorBoard writer
-    if tb_writer:
-        tb_writer.close()
-        print("TensorBoard writer closed")
 
     return
